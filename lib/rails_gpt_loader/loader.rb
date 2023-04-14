@@ -3,6 +3,14 @@ require 'open3'
 
 module RailsGptLoader
   class Loader
+    DEFAULT_IGNORE_LIST = [
+      '.gitignore',
+      '*.yml.enc',
+      '*.key',
+      'public/robots.txt',
+      'bin/*'
+    ]
+
     def initialize(repo_path, output_file_path: 'output.txt', preamble_file: nil, gptignore_file: '.gptignore')
       @repo_path = repo_path
       @output_file_path = output_file_path
@@ -12,9 +20,9 @@ module RailsGptLoader
     end
 
     def load_ignore_list
-      return [] unless File.exist?(@gptignore_file)
+      return DEFAULT_IGNORE_LIST unless File.exist?(@gptignore_file)
 
-      File.readlines(@gptignore_file).map(&:strip)
+      File.readlines(@gptignore_file).map(&:strip) + DEFAULT_IGNORE_LIST
     end
 
     def should_ignore?(file_path)
@@ -38,7 +46,7 @@ module RailsGptLoader
 
         git_tracked_files.each do |relative_file_path|
           file_path = File.join(@repo_path, relative_file_path)
-          next if should_ignore?(relative_file_path)
+          next if should_ignore?(relative_file_path) || empty_or_blank_file?(file_path)
 
           #relative_file_path = path.gsub("#{@repo_path}/", '')
           output_file.write("-" * 4 + "\n")
@@ -48,6 +56,11 @@ module RailsGptLoader
 
         output_file.write("--END--")
       end
+    end
+
+    def empty_or_blank_file?(file_path)
+      content = File.read(file_path).strip
+      content.empty?
     end
   end
 end
