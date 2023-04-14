@@ -1,0 +1,21 @@
+#!/usr/bin/env ruby
+
+require_relative "../lib/rails_gpt_loader"
+
+lib = File.expand_path('../../lib', __FILE__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+
+if ARGV.length < 1
+  puts "Usage: rails_gpt_loader /path/to/git/repository [-p /path/to/preamble.txt] [-o /path/to/output_file.txt]"
+  exit 1
+end
+
+repo_path = ARGV[0]
+preamble_file = ARGV.include?("-p") ? ARGV[ARGV.index("-p") + 1] : nil
+output_file_path = ARGV.include?("-o") ? ARGV[ARGV.index("-o") + 1] : "output.txt"
+
+loader = RailsGptLoader::Loader.new(repo_path, output_file_path: output_file_path, preamble_file: preamble_file)
+loader.process_repository
+
+file_size = File.size(output_file_path)
+puts "Repository contents written to #{output_file_path} (#{file_size} characters)."
