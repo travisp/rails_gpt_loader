@@ -87,6 +87,8 @@ module RailsGptLoader
     def empty_or_blank_file?(file_path)
       content = File.read(file_path).strip
       content.empty?
+    rescue Encoding::CompatibilityError
+      false
     end
 
     def text_file?(file_path)
@@ -99,7 +101,7 @@ module RailsGptLoader
           @logger.warn("An error occurred running the file command to determine if a file is text or binary. Skipping file.")
           return false
         end
-      rescue
+      rescue 
         @logger.warn("An error occurred running the file command to determine if a file is text or binary. Skipping file.")
         return false
       end
