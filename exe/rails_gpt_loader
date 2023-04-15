@@ -2,7 +2,7 @@
 
 require_relative "../lib/rails_gpt_loader"
 
-lib = File.expand_path('../../lib', __FILE__)
+lib = File.expand_path("../../lib", __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 if ARGV.length < 1

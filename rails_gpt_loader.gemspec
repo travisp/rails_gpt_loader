@@ -6,10 +6,10 @@ Gem::Specification.new do |spec|
   spec.name = "rails_gpt_loader"
   spec.version = RailsGptLoader::VERSION
   spec.authors = ["Travis Pew"]
-  #spec.email = ["TODO"]
+  # spec.email = ["TODO"]
 
   spec.summary = "Rails GPT Loader"
-  #spec.description = "TODO: Write a longer description or delete this line."
+  # spec.description = "TODO: Write a longer description or delete this line."
   spec.homepage = "https://github.com/travisp/rails_gpt_loader"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 2.6.0"
@@ -33,6 +33,7 @@ Gem::Specification.new do |spec|
 
   # Uncomment to register a new dependency of your gem
   # spec.add_dependency "example-gem", "~> 1.0"
+  spec.add_development_dependency "standard", "~> 1.26", ">= 1.26"
 
   # For more information and examples about making a new gem, check out our
   # guide at: https://bundler.io/guides/creating_gem.html

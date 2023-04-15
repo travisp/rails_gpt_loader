@@ -1,35 +1,55 @@
-# RailsGptLoader
+# Rails GPT Loader
 
-TODO: Delete this and the text below, and describe your gem
+RailsGptLoader is a Ruby gem that helps you generate a text representation of your Git repository, including only the necessary files for GPT-based analysis or processing. It helps you create a text version of your repository, which can be used as input for language models like OpenAI's GPT.
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/rails_gpt_loader`. To experiment with that code, run `bin/console` for an interactive prompt.
+This gem was inspired by Michael Poon's [gpt-repository-loader](https://github.com/mpoon/gpt-repository-loader).
 
 ## Installation
 
-TODO: Replace `UPDATE_WITH_YOUR_GEM_NAME_PRIOR_TO_RELEASE_TO_RUBYGEMS_ORG` with your gem name right after releasing it to RubyGems.org. Please do not do it earlier due to security reasons. Alternatively, replace this section with instructions to install your gem from git if you don't plan to release to RubyGems.org.
+To install RailsGptLoader and add it to your application's Gemfile, execute:
 
-Install the gem and add to the application's Gemfile by executing:
+```ruby
+gem 'rails_gpt_loader'
+```
 
-    $ bundle add UPDATE_WITH_YOUR_GEM_NAME_PRIOR_TO_RELEASE_TO_RUBYGEMS_ORG
+And then execute:
+```bash
+$ bundle install
+```
 
-If bundler is not being used to manage dependencies, install the gem by executing:
-
-    $ gem install UPDATE_WITH_YOUR_GEM_NAME_PRIOR_TO_RELEASE_TO_RUBYGEMS_ORG
+Or install it yourself as:
+```bash
+$ gem install rails_gpt_loader
+```
 
 ## Usage
+To use Rails GPT Loader, navigate to your Rails application directory and run the following command:
 
-TODO: Write usage instructions here
+```bash
+$ bundle exec rails_gpt_loader /path/to/git/repository
+```
+
+This command will create an `output.txt` file in the current directory, containing the relevant code from your Rails app.
+
+By default, Rails GPT Loader will ignore any files listed in your `.gitignore` file (and files not checked into your git repository), empty or blank files, and a small list of files to ignore by default.
+
+### Customization
+
+By default, the output file will be named output.txt and will be located in the current directory. You can customize the output file path and other options when initializing the loader:
+
+- `-o`: Optional: specify the output file path. Example: `-o path/to/output_file.txt`
+- `-p`: Optional: specify a preamble file to prepend to the output file. Example: `-p path/to/preamble.txt`
+
+Additionally, you can specify a list of files to ignore when generating the output file. This is useful if you want to ignore files that are checked into your git repository, but you don't want to include in the output file. To do this, create a file named `.gptignore` in the root directory of your Rails application. This file should contain a list of files to ignore, one per line.
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
-
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+After checking out the repo, run `bin/setup` to install dependencies. You can run tests using the `ruby -Ilib:test test/test_rails_gpt_loader.rb` command.
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/rails_gpt_loader.
+Bug reports and pull requests are welcome on Github at [https://github.com/travisp/rails_gpt_loader](https://github.com/travisp/rails_gpt_loader).
 
 ## License
 
-The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+The gem is available as open source under the terms of the MIT License.
