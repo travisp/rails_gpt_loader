@@ -1,0 +1,9 @@
+exclude_files:
+  - test/fixtures/*
+  - test/fixtures/**/*
+include_files:
+  - exe/*
+  - README.md
+include:
+  lib: true
+remove_comments: true

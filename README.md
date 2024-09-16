@@ -40,11 +40,33 @@ By default, the output file will be named output.txt and will be located in the 
 - `-o`: Optional: specify the output file path. Example: `-o path/to/output_file.txt`
 - `-p`: Optional: specify a preamble file to prepend to the output file. Example: `-p path/to/preamble.txt`
 
-Additionally, you can specify a list of files to ignore when generating the output file. This is useful if you want to ignore files that are checked into your git repository, but you don't want to include in the output file. To do this, create a file named `.gptignore` in the root directory of your Rails application. This file should contain a list of files to ignore, one per line.
+You can also customize the included and excluded files using a `.gptconfig.yml` configuration file placed in the root directory of your Rails application. The configuration file should contain a dictionary with keys specifying which categories of files to include (e.g., `backend`, `tests`, `views`, `configuration`, `lib`, `stylesheets`, `javascript`) and values set to true or false. You can also specify additional files to exclude or include using exclude_files and include_files keys with lists of file patterns.
+
+Here is an example of a `.gptconfig.yml` file:
+
+```yaml
+include:
+  tests: false
+  views: false
+  configuration: false
+  backend: true
+  lib: false
+  stylesheets: false
+  javascript: false
+exclude_files:
+  - "db/seeds.rb"
+  - "vendor/**/*"
+include_files:
+  - "lib/tasks/*.rake"
+  ```
+
+This configuration file will only include backend files and will exclude db/seeds.rb and all files in the vendor directory. It will also include all .rake files located in lib/tasks.
+
+`exclude_files` will have precedence over `include_files`.
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. You can run tests using the `ruby -Ilib:test test/test_rails_gpt_loader.rb` command.
+After checking out the repo, run `bin/setup` to install dependencies. You can run tests using the `bundle exec rake test` command.
 
 ## Contributing
 

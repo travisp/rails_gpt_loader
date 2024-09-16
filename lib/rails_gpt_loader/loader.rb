@@ -1,6 +1,7 @@
 require "find"
 require "open3"
 require "logger"
+require "yaml"
 
 module RailsGptLoader
   class Loader
@@ -11,39 +12,90 @@ module RailsGptLoader
       "public/robots.txt",
       "bin/*",
       "CHANGELOG.md",
-      "LICENSE.txt"
+      "LICENSE.txt",
+      "Gemfile.lock",
+      "**.yml"
     ]
 
-    # Initializes the Loader with the provided parameters and sets up the ignore list.
-    # @param repo_path [String] the path to the repository
-    # @param output_file_path [String] the path to the output file (default: 'output.txt')
-    # @param preamble_file [String] the path to the optional preamble file (default: nil)
-    # @param gptignore_file [String] the path to the optional .gptignore file (default: '.gptignore')
-    def initialize(repo_path, output_file_path: "output.txt", preamble_file: nil, gptignore_file: ".gptignore")
+    FILE_PATTERNS = {
+      backend: /(app\/models|app\/controllers|app\/helpers|app\/jobs)/,
+      tests: /(spec|test)/,
+      views: /(app\/views)/,
+      configuration: /(config)/,
+      lib: /(lib)/,
+      stylesheets: /(app\/assets\/stylesheets)/,
+      javascript: /(app\/assets\/javascripts|app\/javascript)/
+    }
+
+    def initialize(repo_path, options: {})
       @repo_path = repo_path
-      @output_file_path = output_file_path
-      @preamble_file = preamble_file
-      @gptignore_file = File.join(repo_path, gptignore_file)
-      @ignore_list = load_ignore_list
+      @output_file_path = options.fetch(:output_file_path, "options.txt")
+      @preamble_file = options.fetch(:premable_file, nil)
+      @config_file = File.join(repo_path, options[:config_file]) if options[:config_file]
+      @options = load_options(options)
       @logger = Logger.new($stdout)
     end
 
-    # Loads the ignore list, merging the default ignore list, the custom ignore list, and the contents of the .gptignore file if it exists.
-    # @param custom_ignore_list [Array] the list of additional file patterns to ignore
-    # @return [Array] the combined ignore list
-    def load_ignore_list
-      return DEFAULT_IGNORE_LIST unless File.exist?(@gptignore_file)
+    def load_options(cli_options)
+      default_options = {
+        include: {
+          tests: false,
+          views: false,
+          configuration: false,
+          backend: true,
+          lib: false,
+          stylesheets: false,
+          javascript: false
+        },
+        exclude_files: [],
+        include_files: [],
+        remove_comments: false
+      }
 
-      File.readlines(@gptignore_file).map(&:strip) + DEFAULT_IGNORE_LIST
+      if @config_file && File.exist?(@config_file)
+        yaml_options = YAML.load_file(@config_file)
+        default_options = deep_merge_hashes(default_options, deep_symbolize_keys(yaml_options))
+      end
+
+      deep_merge_hashes(default_options, deep_symbolize_keys(cli_options))
     end
 
-    def should_ignore?(file_path)
-      @ignore_list.any? { |pattern| File.fnmatch(pattern, file_path) }
+    def deep_merge_hashes(first, second)
+      merger = proc { |_, v1, v2|
+        if Hash === v1 && Hash === v2
+          v1.merge(v2, &merger)
+        elsif Array === v1 && Array === v2
+          v1 | v2
+        else
+          [:undefined, nil, :nil].include?(v2) ? v1 : v2
+        end
+      }
+      first.merge(second, &merger)
+    end
+
+    def deep_symbolize_keys(hash)
+      hash.each_with_object({}) do |(key, value), result|
+        new_key = key.to_sym
+        new_value = value.is_a?(Hash) ? deep_symbolize_keys(value) : value
+        result[new_key] = new_value
+      end
+    end
+
+    def should_include?(file_path)
+      # Priority: exclude_files explicitly specified, include_files explicitly specified
+      # then our default ignore list, then the include patterns.
+      return false if @options[:exclude_files].any? { |pattern| File.fnmatch(pattern, file_path) }
+      return true if @options[:include_files].any? { |pattern| File.fnmatch(pattern, file_path) }
+      return false if DEFAULT_IGNORE_LIST.any? { |pattern| File.fnmatch(pattern, file_path) }
+
+      @options[:include].any? do |key, value|
+        value && file_path.match?(FILE_PATTERNS[key])
+      end
     end
 
     def git_tracked_files
       stdout, _stderr, _status = Open3.capture3("git -C #{@repo_path} ls-files")
-      stdout.split("\n")
+      stdout.split("\n").reject { |file| file.start_with?(".") }
     end
 
     # Processes the repository, reads the preamble if provided, and writes the output file.
@@ -59,20 +111,40 @@ module RailsGptLoader
 
         git_tracked_files.each do |relative_file_path|
           file_path = File.join(@repo_path, relative_file_path)
-          next if should_ignore?(relative_file_path)
+          next if !should_include?(relative_file_path)
           next if empty_or_blank_file?(file_path)
-          next unless text_file?(file_path)
+          next if !text_file?(file_path)
 
           # relative_file_path = path.gsub("#{@repo_path}/", '')
           output_file.write("-" * 4 + "\n")
           output_file.write("#{relative_file_path}\n")
-          output_file.write(safe_file_read(file_path) + "\n")
+          output_file.write(process_file(file_path) + "\n")
         end
 
         output_file.write("--END--")
       end
     rescue => e
       @logger.error("Error processing repository: #{e.message}")
+      @logger.error("Backtrace:\n#{e.backtrace.join("\n")}")
+    end
+
+    def process_file(file_path)
+      content = safe_file_read(file_path)
+      return content unless @options[:remove_comments]
+    
+      case file_path
+      when /\.css\z/
+        content.gsub(/(\s*\/\*.*?\*\/)/m, "")
+      when /\.rb\z/
+        content.gsub(/^\s*#.*$/, "")
+      when /\.js\z/
+        content.gsub(/^\s*\/\/.*$/, "")
+      when /\.html\z/, /\.htm\z/, /\.html\.erb\z/
+        content = content.gsub(/(\s*<!--.*?-->)/m, "")
+        content.gsub(/(\s*<%#.*?%>)/m, "")
+      else
+        content
+      end
     end
 
     # Safely reads a file's content, handling encoding issues.
@@ -93,7 +165,7 @@ module RailsGptLoader
 
     def text_file?(file_path)
       begin
-        output, status = Open3.capture2e("file", file_path)
+        output, status = Open3.capture2("file", file_path)
 
         if status.success?
           return output.include?("text")
@@ -101,7 +173,7 @@ module RailsGptLoader
           @logger.warn("An error occurred running the file command to determine if a file is text or binary. Skipping file.")
           return false
         end
-      rescue 
+      rescue
         @logger.warn("An error occurred running the file command to determine if a file is text or binary. Skipping file.")
         return false
       end

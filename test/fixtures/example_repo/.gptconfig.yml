@@ -1,0 +1,8 @@
+include:
+  backend: true
+  tests: true
+  views: true
+  configuration: true
+  lib: true
+  stylesheets: true
+  javascript: true

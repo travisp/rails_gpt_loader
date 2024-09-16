@@ -4,18 +4,44 @@ require_relative "../lib/rails_gpt_loader"
 
 lib = File.expand_path("../../lib", __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+require "optparse"
+
+options = {
+  config_file: ".gptconfig.yml",
+  output_file_path: "output.txt",
+  exclude_files: [],
+  include_files: []
+}
+
+option_parser = OptionParser.new do |opts|
+  opts.on("-c", "--config FILE", "Path to configuration file") do |file|
+    options[:config_file] = file
+  end
+  opts.on("-p", "--preamble FILE", "Path to preamble file") do |file|
+    options[:preamble_file] = file
+  end
+  opts.on("-o", "--output FILE", "Path to output file") do |file|
+    options[:output_file_path] = file
+  end
+  opts.on("--exclude_files PATTERN", Array, "List of file patterns to exclude") do |patterns|
+    options[:exclude_files] = patterns
+  end
+  opts.on("--include_files PATTERN", Array, "List of file patterns to exclude") do |patterns|
+    options[:include_files] = patterns
+  end
+end
+
+option_parser.parse!(ARGV)
 
 if ARGV.length < 1
-  puts "Usage: rails_gpt_loader /path/to/git/repository [-p /path/to/preamble.txt] [-o /path/to/output_file.txt]"
+  puts option_parser.help
   exit 1
 end
 
 repo_path = ARGV[0]
-preamble_file = ARGV.include?("-p") ? ARGV[ARGV.index("-p") + 1] : nil
-output_file_path = ARGV.include?("-o") ? ARGV[ARGV.index("-o") + 1] : "output.txt"
 
-loader = RailsGptLoader::Loader.new(repo_path, output_file_path: output_file_path, preamble_file: preamble_file)
+loader = RailsGptLoader::Loader.new(repo_path, options: options)
 loader.process_repository
 
-file_size = File.size(output_file_path)
-puts "Repository contents written to #{output_file_path} (#{file_size} characters)."
+file_size = File.size(options[:output_file_path])
+puts "Repository contents written to #{options[:output_file_path]} (#{file_size} characters)."
