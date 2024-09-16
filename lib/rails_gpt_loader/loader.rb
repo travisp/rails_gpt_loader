@@ -34,6 +34,7 @@ module RailsGptLoader
       @config_file = File.join(repo_path, options[:config_file]) if options[:config_file]
       @options = load_options(options)
       @logger = Logger.new($stdout)
+      @gitignore_patterns = load_gitignore_patterns
     end
 
     def load_options(cli_options)
@@ -81,10 +82,18 @@ module RailsGptLoader
       end
     end
 
+    def load_gitignore_patterns
+      gitignore_path = File.join(@repo_path, ".gitignore")
+      return [] unless File.exist?(gitignore_path)
+
+      File.readlines(gitignore_path).map(&:strip).reject { |line| line.empty? || line.start_with?("#") }
+    end
+
     def should_include?(file_path)
       # Priority: exclude_files explicitly specified, include_files explicitly specified
       # then our default ignore list, then the include patterns.
       return false if @options[:exclude_files].any? { |pattern| File.fnmatch(pattern, file_path) }
+      return false if @gitignore_patterns.any? { |pattern| File.fnmatch(pattern, file_path, File::FNM_DOTMATCH) }
       return true if @options[:include_files].any? { |pattern| File.fnmatch(pattern, file_path) }
       return false if DEFAULT_IGNORE_LIST.any? { |pattern| File.fnmatch(pattern, file_path) }
 
