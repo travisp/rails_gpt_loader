@@ -29,8 +29,8 @@ module RailsGptLoader
 
     def initialize(repo_path, options: {})
       @repo_path = repo_path
-      @output_file_path = options.fetch(:output_file_path, "options.txt")
-      @preamble_file = options.fetch(:premable_file, nil)
+      @output_file_path = options.fetch(:output_file_path, "output.txt")
+      @preamble_file = options.fetch(:preamble_file, nil)
       @config_file = File.join(repo_path, options[:config_file]) if options[:config_file]
       @options = load_options(options)
       @logger = Logger.new($stdout)
@@ -131,7 +131,7 @@ module RailsGptLoader
     def process_file(file_path)
       content = safe_file_read(file_path)
       return content unless @options[:remove_comments]
-    
+
       case file_path
       when /\.css\z/
         content.gsub(/(\s*\/\*.*?\*\/)/m, "")
