@@ -58,7 +58,15 @@ module RailsGptLoader
         default_options = deep_merge_hashes(default_options, deep_symbolize_keys(yaml_options))
       end
 
-      deep_merge_hashes(default_options, deep_symbolize_keys(cli_options))
+      options = deep_merge_hashes(default_options, deep_symbolize_keys(cli_options))
+
+      # Ensure exclude_files is an array
+      options[:exclude_files] = Array(options[:exclude_files])
+
+      # Ensure include_files is an array
+      options[:include_files] = Array(options[:include_files])
+
+      options
     end
 
     def deep_merge_hashes(first, second)
@@ -90,13 +98,19 @@ module RailsGptLoader
     end
 
     def should_include?(file_path)
-      # Priority: exclude_files explicitly specified, include_files explicitly specified
-      # then our default ignore list, then the include patterns.
-      return false if @options[:exclude_files].any? { |pattern| File.fnmatch(pattern, file_path) }
-      return false if @gitignore_patterns.any? { |pattern| File.fnmatch(pattern, file_path, File::FNM_DOTMATCH) }
-      return true if @options[:include_files].any? { |pattern| File.fnmatch(pattern, file_path) }
-      return false if DEFAULT_IGNORE_LIST.any? { |pattern| File.fnmatch(pattern, file_path) }
+      # Check exclude_files first (highest priority)
+      return false if @options[:exclude_files].any? { |pattern| File.fnmatch(pattern, file_path, File::FNM_PATHNAME) }
 
+      # Check include_files next
+      return true if @options[:include_files].any? { |pattern| File.fnmatch(pattern, file_path, File::FNM_PATHNAME) }
+
+      # Check gitignore patterns
+      return false if @gitignore_patterns.any? { |pattern| File.fnmatch(pattern, file_path, File::FNM_DOTMATCH | File::FNM_PATHNAME) }
+
+      # Check default ignore list
+      return false if DEFAULT_IGNORE_LIST.any? { |pattern| File.fnmatch(pattern, file_path, File::FNM_PATHNAME) }
+
+      # Check file patterns based on include options
       @options[:include].any? do |key, value|
         value && file_path.match?(FILE_PATTERNS[key])
       end
