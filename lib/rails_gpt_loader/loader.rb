@@ -24,7 +24,8 @@ module RailsGptLoader
       configuration: /(config)/,
       lib: /(lib)/,
       stylesheets: /(app\/assets\/stylesheets)/,
-      javascript: /(app\/assets\/javascripts|app\/javascript)/
+      javascript: /(app\/assets\/javascripts|app\/javascript)/,
+      schema: /(db\/schema)/
     }
 
     def initialize(repo_path, options: {})
@@ -46,7 +47,8 @@ module RailsGptLoader
           backend: true,
           lib: false,
           stylesheets: false,
-          javascript: false
+          javascript: false,
+          schema: false
         },
         exclude_files: [],
         include_files: [],
